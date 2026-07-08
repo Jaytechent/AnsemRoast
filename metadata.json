@@ -1,0 +1,6 @@
+{
+  "name": "Ansem Wallet Roast",
+  "description": "Think your wallet is cooking? Paste your Solana wallet address and get roasted by Ansem with premium metrics, conviction scores, and interactive timelines.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
