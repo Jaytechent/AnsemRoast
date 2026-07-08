@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
-import { Award, Shield, Zap, Flame, Gem, Skull, AlertOctagon, RefreshCw } from "lucide-react";
+import { Award, Shield, Zap, Flame, Gem, Skull, AlertOctagon, RefreshCw, Sparkles } from "lucide-react";
 
 interface BadgeCardProps {
   currentBadge: string;
@@ -14,7 +14,8 @@ const BADGE_LIST = [
   { name: "Rug Collector", desc: "If there's a fresh dev rug on pump.fun, you will buy it.", icon: Skull, color: "text-rose-500", border: "border-rose-500/20", bg: "bg-rose-500/5" },
   { name: "Top Buyer", desc: "Certified top signal. Green candles make you FOMO hard.", icon: Zap, color: "text-yellow-400", border: "border-yellow-400/20", bg: "bg-yellow-400/5" },
   { name: "Exit Liquidity", desc: "Smooth brain portfolio. Always buying what whales sell.", icon: AlertOctagon, color: "text-orange-400", border: "border-orange-500/20", bg: "bg-orange-500/5" },
-  { name: "Pump.fun Addict", desc: "24/7 degen slot machine clicking. Cannot stop fr.", icon: Flame, color: "text-neon-purple", border: "border-neon-purple/20", bg: "bg-neon-purple/5" }
+  { name: "Pump.fun Addict", desc: "24/7 degen slot machine clicking. Cannot stop fr.", icon: Flame, color: "text-neon-purple", border: "border-neon-purple/20", bg: "bg-neon-purple/5" },
+  { name: "Meme Enjoyer", desc: "Balanced degen. Not a legend, not exit liquidity - just vibing.", icon: Sparkles, color: "text-gray-300", border: "border-white/20", bg: "bg-white/5" }
 ];
 
 export default function BadgeCard({ currentBadge }: BadgeCardProps) {

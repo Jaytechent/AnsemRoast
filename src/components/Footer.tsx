@@ -25,8 +25,16 @@ export default function Footer() {
         {/* Made with love */}
         <div className="flex items-center gap-1">
           <span>Made for the Chads with</span>
-          <Heart className="h-3 w-3 text-neon-purple fill-neon-purple" />
-          <span>on Solana</span>
+<Heart className="h-3 w-3 text-neon-purple fill-neon-purple" />
+<span>on Solana by </span>
+<a
+  href="https://x.com/hallenjayArt"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-neon-purple hover:underline"
+>
+  @hallenjayArt
+</a>
         </div>
       </div>
     </footer>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="rainbow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff3b30"/>
+      <stop offset="16%" stop-color="#ff9500"/>
+      <stop offset="33%" stop-color="#ffe600"/>
+      <stop offset="50%" stop-color="#34c759"/>
+      <stop offset="66%" stop-color="#0a84ff"/>
+      <stop offset="83%" stop-color="#5e5ce6"/>
+      <stop offset="100%" stop-color="#af52de"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0a0a0c"/>
+  <text
+    x="32"
+    y="47"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-weight="900"
+    font-size="42"
+    fill="url(#rainbow)"
+  >A</text>
+</svg>

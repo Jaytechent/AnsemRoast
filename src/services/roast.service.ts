@@ -122,6 +122,18 @@ Rules:
     if (stats.badge === "Exit Liquidity") {
       return `bro ${short} has a wallet iq of ${stats.walletIQ}... that's room temperature. you are literally exit liquidity for the raydium bots. stop buying green candles and calling it a strategy.`;
     }
+    if (stats.badge === "Whale") {
+      return `${short} is out here moving size like a proper whale, chad. ${stats.balance.toLocaleString()} ansem sitting pretty. respectfully, slow down before you become your own liquidity event.`;
+    }
+    if (stats.badge === "Smart Money") {
+      return `bro ${short} has a wallet iq of ${stats.walletIQ}, actual smart money behavior. conviction rating ${stats.conviction}%. you're the guy everyone copy trades and never tells you thanks.`;
+    }
+    if (stats.badge === "Rug Collector") {
+      return `${short} degenerate score is ${stats.degenerateScore}% and wallet iq is ${stats.walletIQ}... bro your bags are basically a pump.fun museum of failed migrations. curator behavior fr.`;
+    }
+    if (stats.badge === "Top Buyer") {
+      return `bro ${short} just aped in ${stats.daysHolding} days ago and is already calling it conviction. fast hands, chad. ask ansem how many of these top buys actually top-tick the chart.`;
+    }
     
     return `wallet ${short} is midcurve. not holding enough ansem, degenerate score is ${stats.degenerateScore}%. you're trading like you have 4 spaces tabs open at 4 AM while eating dry ramen. pull it together bro.`;
   }

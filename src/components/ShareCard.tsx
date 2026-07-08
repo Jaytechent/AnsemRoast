@@ -1,7 +1,8 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
-import { Flame, Twitter, Sparkles, Trophy, Percent, HelpCircle } from "lucide-react";
+import { Flame, Twitter, Sparkles, Trophy, Percent, HelpCircle, Download, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import html2canvas from "html2canvas-pro";
 
 interface ShareCardProps {
   wallet: string;
@@ -23,14 +24,144 @@ export default function ShareCard({
   roast,
 }: ShareCardProps) {
   const shortWallet = wallet.slice(0, 6) + "..." + wallet.slice(-4);
-  
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [isCapturing, setIsCapturing] = useState(false);
+
   // Cut Roast down to a clean short snippet for the square layout
   const roastSnippet = roast.length > 210 ? roast.slice(0, 207) + "..." : roast;
 
-  // Build X (Twitter) intent URL
+  const shareText = `🔥 Just got roasted by Ansem (@blknoiz06) on Ansem Wallet Roast!\n\n🧠 Wallet IQ: ${walletIQ}\n💎 Diamond Hands: ${diamondHands}%\n💰 Net Profit: ${profit} SOL\n🏆 Badge: ${badge}\n\nRoast: "${roastSnippet.slice(0, 100)}..."\n\nCook your own wallet at:`;
+
+  // Build X (Twitter) intent URL (text + link only - see note in handleShareToX)
   const buildTwitterUrl = () => {
-    const text = `🔥 Just got roasted by Ansem (@blknoiz06) on Ansem Wallet Roast!\n\n🧠 Wallet IQ: ${walletIQ}\n💎 Diamond Hands: ${diamondHands}%\n💰 Net Profit: ${profit} SOL\n🏆 Badge: ${badge}\n\nRoast: "${roastSnippet.slice(0, 100)}..."\n\nCook your own wallet at:`;
-    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.origin)}`;
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.origin)}`;
+  };
+
+  /**
+   * Renders the visible #share-image-block card into an actual PNG blob.
+   * Uses html2canvas-pro (not plain html2canvas) because Tailwind v4 generates
+   * colors using the modern CSS oklch() function, which plain html2canvas 1.4.x
+   * cannot parse - it throws immediately on the first Tailwind color it hits,
+   * which is why capture was silently failing before.
+   */
+  const captureCardImage = async (): Promise<Blob | null> => {
+    if (!cardRef.current) return null;
+    const canvas = await html2canvas(cardRef.current, {
+      backgroundColor: "#000000",
+      scale: 2, // sharper export
+      useCORS: true,
+      logging: false,
+    });
+    return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
+  };
+
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * X's web intent (https://twitter.com/intent/tweet) only ever accepts `text` + a `url`
+   * to unfurl - there is NO web-intent parameter that attaches a pre-made image to the
+   * tweet. Actually attaching an image programmatically requires the X API v2 media
+   * upload endpoint, which needs OAuth user tokens and a backend call - not something a
+   * plain "Share" button in the browser can do.
+   *
+   * The real workaround: render the card to a PNG client-side, then either
+   *  1) hand it to the OS share sheet via the Web Share API (navigator.share) - on most
+   *     mobile browsers this lets the person pick the X app directly with the image
+   *     already attached, or
+   *  2) download the PNG and open the tweet composer pre-filled with text, so they can
+   *     drag-and-drop / paste the downloaded image into the compose box.
+   *
+   * The tab to X is opened *synchronously*, right when the click happens, before any
+   * `await`. Browsers only allow window.open() to bypass the popup blocker while it's
+   * still inside the original click's "user activation" window - once you `await`
+   * something first, that activation has expired and the browser silently swallows the
+   * window.open() call (no error, nothing happens). That's why the redirect used to stop
+   * firing. Opening the tab first and filling in its URL afterwards keeps it reliable,
+   * and it means the redirect always happens even if the screenshot itself fails.
+   */
+  const handleShareToX = async () => {
+    const composeWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+
+    setIsCapturing(true);
+    let usedNativeShare = false;
+
+    try {
+      const blob = await captureCardImage();
+
+      if (blob) {
+        const file = new File([blob], `ansem-roast-${shortWallet}.png`, { type: "image/png" });
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          composeWindow?.close();
+          usedNativeShare = true;
+          await navigator.share({ files: [file], text: shareText });
+        } else {
+          triggerDownload(blob, `ansem-roast-${shortWallet}.png`);
+          toast.success("Screenshot downloaded! Drop it into the X post that just opened.", {
+            duration: 6000,
+            style: {
+              background: "#0a0a0c",
+              color: "#f3f4f6",
+              border: "1px solid rgba(20, 241, 149, 0.2)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "12px",
+            },
+          });
+        }
+      } else {
+        toast.error("Couldn't generate a screenshot of the card - opening X without it.");
+      }
+    } catch (err: any) {
+      // User cancelling the native share sheet also lands here - don't show an error toast for that.
+      if (err?.name !== "AbortError") {
+        console.error("Share failed:", err);
+        toast.error("Couldn't generate a screenshot of the card - opening X without it.");
+      }
+    } finally {
+      setIsCapturing(false);
+      // Always complete the redirect, regardless of whether the screenshot worked -
+      // matches the old guaranteed-redirect behavior of a plain <a href> link.
+      if (!usedNativeShare) {
+        const twitterUrl = buildTwitterUrl();
+        if (composeWindow && !composeWindow.closed) {
+          composeWindow.location.href = twitterUrl;
+        } else {
+          window.open(twitterUrl, "_blank", "noopener,noreferrer");
+        }
+      }
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    setIsCapturing(true);
+    try {
+      const blob = await captureCardImage();
+      if (!blob) throw new Error("Could not render card image");
+      triggerDownload(blob, `ansem-roast-${shortWallet}.png`);
+      toast.success("Card image downloaded!", {
+        style: {
+          background: "#0a0a0c",
+          color: "#f3f4f6",
+          border: "1px solid rgba(20, 241, 149, 0.2)",
+          fontFamily: "var(--font-mono)",
+          fontSize: "12px",
+        },
+      });
+    } catch (err: any) {
+      console.error("Download failed:", err);
+      toast.error(`Couldn't generate the share image${err?.message ? `: ${err.message}` : ""}.`);
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
   const handleCopyCard = () => {
@@ -61,6 +192,7 @@ export default function ShareCard({
       {/* Actual Social Image Card Container */}
       <div 
         id="share-image-block"
+        ref={cardRef}
         className="mx-auto w-full max-w-[420px] aspect-square rounded-3xl p-6 bg-black border border-white/10 flex flex-col justify-between relative overflow-hidden shadow-[0_0_50px_rgba(20,241,149,0.05)] select-none"
       >
         {/* Cool Solana/Ansem Graphic watermarks */}
@@ -154,16 +286,30 @@ export default function ShareCard({
 
       {/* Share Actions buttons */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <a
-          href={buildTwitterUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="button"
           id="post-to-x-btn"
-          className="flex-1 flex items-center justify-center gap-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] text-white py-3 px-5 rounded-2xl font-display font-bold text-xs transition-all hover:scale-[1.01]"
+          onClick={handleShareToX}
+          disabled={isCapturing}
+          className="flex-1 flex items-center justify-center gap-2 bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:opacity-60 text-white py-3 px-5 rounded-2xl font-display font-bold text-xs transition-all hover:scale-[1.01] cursor-pointer"
         >
-          <Twitter className="h-4 w-4 fill-white" />
-          POST TO X (TWITTER)
-        </a>
+          {isCapturing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Twitter className="h-4 w-4 fill-white" />
+          )}
+          {isCapturing ? "GENERATING..." : "SHARE IMAGE TO X"}
+        </button>
+        <button
+          type="button"
+          id="download-share-image-btn"
+          onClick={handleDownloadImage}
+          disabled={isCapturing}
+          className="flex-1 flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 disabled:opacity-60 text-white border border-white/10 py-3 px-5 rounded-2xl font-display font-bold text-xs transition-all cursor-pointer"
+        >
+          <Download className="h-4 w-4" />
+          DOWNLOAD IMAGE
+        </button>
         <button
           type="button"
           id="copy-share-card-btn"
